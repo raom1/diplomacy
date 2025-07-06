@@ -1,0 +1,82 @@
+country,connected_to,unit_type,coast,sc,controlled_by,coords,start_control,sc_control
+Ankara,"['Smyrna', 'Constantinople', 'Black Sea', 'Armenia']",both,False,True,turkey,"{'army': (930, 800), 'fleet': (930, 760)}",turkey,turkey
+Belgium,"['English Channel', 'North Sea', 'Picardy', 'Burgundy', 'Ruhr', 'Holland']",both,False,True,neutral,"{'army': (420, 535), 'fleet': (395, 505)}",neutral,neutral
+Berlin,"['Baltic Sea', 'Kiel', 'Munich', 'Silesia', 'Prussia']",both,False,True,germany,"{'army': (565, 495), 'fleet': (570, 455)}",germany,germany
+Brest,"['English Channel', 'Mid Atlantic Ocean', 'Picardy', 'Paris', 'Gascony']",both,False,True,france,"{'army': (310, 585), 'fleet': (260, 555)}",france,france
+Budapest,"['Galicia', 'Vienna', 'Trieste', 'Serbia', 'Rumania']",army,False,True,austria,"{'army': (690, 650), 'fleet': nan}",austria,austria
+Bulgaria,"['Rumania', 'Black Sea', 'Constantinople', 'Aegean Sea', 'Greece', 'Serbia']",army,False,True,neutral,"{'army': (775, 755), 'fleet': nan}",neutral,neutral
+Bulgaria_ec,"['Rumania', 'Black Sea', 'Constantinople']",fleet,True,True,neutral,"{'army': nan, 'fleet': (815, 755)}",neutral,neutral
+Bulgaria_sc,"['Greece', 'Aegean Sea', 'Constantinople']",fleet,True,True,neutral,"{'army': nan, 'fleet': (775, 805)}",neutral,neutral
+Constantinople,"['Black Sea', 'Ankara', 'Smyrna', 'Aegean Sea', 'Bulgaria', 'Bulgaria_ec', 'Bulgaria_sc']",both,False,True,turkey,"{'army': (850, 825), 'fleet': (830, 804)}",turkey,turkey
+Denmark,"['Helgoland Bight', 'North Sea', 'Skagerrack', 'Sweden', 'Baltic Sea', 'Kiel']",both,False,True,neutral,"{'army': (515, 405), 'fleet': (540, 420)}",neutral,neutral
+Edinburgh,"['Norwegian Sea', 'North Sea', 'Yorkshire', 'Liverpool', 'Clyde']",both,False,True,england,"{'army': (340, 360), 'fleet': (375, 330)}",england,england
+Greece,"['Aegean Sea', 'Ionian Sea', 'Albania', 'Serbia', 'Bulgaria', 'Bulgaria_sc']",both,False,True,neutral,"{'army': (700, 840), 'fleet': (700, 890)}",neutral,neutral
+Holland,"['Helgoland Bight', 'North Sea', 'Belgium', 'Ruhr', 'Kiel']",both,False,True,neutral,"{'army': (442, 505), 'fleet': (430, 485)}",neutral,neutral
+Kiel,"['Ruhr', 'Holland', 'Helgoland Bight', 'Denmark', 'Baltic Sea', 'Berlin', 'Munich']",both,False,True,germany,"{'army': (510, 495), 'fleet': (490, 460)}",germany,germany
+Liverpool,"['Clyde', 'Edinburgh', 'Yorkshire', 'Whales', 'North Atlantic Ocean', 'Irish Sea']",both,False,True,england,"{'army': (332, 440), 'fleet': (332, 415)}",england,england
+London,"['North Sea', 'English Channel', 'Yorkshire', 'Whales']",both,False,True,england,"{'army': (350, 480), 'fleet': (390, 465)}",england,england
+Marseiles,"['Burgundy', 'Gascony', 'Spain', 'Spain_sc', 'Piedmont', 'Gulf of Lyon']",both,False,True,france,"{'army': (405, 690), 'fleet': (370, 710)}",france,france
+Moscow,"['St Petersburg', 'Livonia', 'Warsaw', 'Ukraine', 'Sevastopol']",army,False,True,russia,"{'army': (890, 420), 'fleet': nan}",russia,russia
+Munich,"['Berlin', 'Kiel', 'Ruhr', 'Burgundy', 'Tyrolia', 'Bohemia', 'Silesia']",army,False,True,germany,"{'army': (500, 580), 'fleet': nan}",germany,germany
+Naples,"['Ionian Sea', 'Tyrrhenian Sea', 'Rome', 'Apulia']",both,False,True,italy,"{'army': (570, 805), 'fleet': (590, 860)}",italy,italy
+Norway,"['Norwegian Sea', 'Barents Sea', 'St Petersburg', 'St Petersburg_nc', 'North Sea', 'Skagerrack', 'Sweden', 'Finland']",both,False,True,neutral,"{'army': (540, 280), 'fleet': (480, 330)}",neutral,neutral
+Paris,"['Picardy', 'Brest', 'Gascony', 'Burgundy']",army,False,True,france,"{'army': (355, 585), 'fleet': nan}",france,france
+Portugal,"['Spain', 'Spain_nc', 'Spain_sc', 'Mid Atlantic Ocean']",both,False,True,neutral,"{'army': (125, 740), 'fleet': (95, 750)}",neutral,neutral
+Rome,"['Tuscany', 'Venice', 'Apulia', 'Naples', 'Tyrrhenian Sea']",both,False,True,italy,"{'army': (535, 770), 'fleet': (535, 790)}",italy,italy
+Rumania,"['Sevastopol', 'Ukraine', 'Galicia', 'Budapest', 'Serbia', 'Bulgaria', 'Bulgaria_ec', 'Black Sea']",both,False,True,neutral,"{'army': (760, 710), 'fleet': (830, 710)}",neutral,neutral
+St Petersburg,"['Moscow', 'Livonia', 'Gulf of Bothnia', 'Finland', 'Norway', 'Barents Sea']",army,False,True,russia,"{'army': (890, 250), 'fleet': nan}",russia,russia
+St Petersburg_nc,"['Barents Sea', 'Norway']",fleet,True,True,russia,"{'army': nan, 'fleet': (845, 185)}",russia,russia
+St Petersburg_sc,"['Finland', 'Gulf of Bothnia', 'Livonia']",fleet,True,True,russia,"{'army': nan, 'fleet': (800, 300)}",russia,russia
+Serbia,"['Budapest', 'Trieste', 'Albania', 'Greece', 'Bulgaria', 'Rumania']",army,False,True,neutral,"{'army': (690, 740), 'fleet': nan}",neutral,neutral
+Sevastopol,"['Armenia', 'Black Sea', 'Rumania', 'Ukraine', 'Moscow']",both,False,True,russia,"{'army': (960, 550), 'fleet': (960, 620)}",russia,russia
+Smyrna,"['Syria', 'Eastern Mediterranean', 'Aegean Sea', 'Constantinople', 'Armenia', 'Ankara']",both,False,True,turkey,"{'army': (930, 860), 'fleet': (900, 900)}",turkey,turkey
+Spain,"['Marseiles', 'Gulf of Lyon', 'Western Mediterranean', 'Mid Atlantic Ocean', 'Gascony', 'Portugal']",army,False,True,neutral,"{'army': (225, 755), 'fleet': nan}",neutral,neutral
+Spain_nc,"['Mid Atlantic Ocean', 'Gascony', 'Portugal']",fleet,True,True,neutral,"{'army': nan, 'fleet': (225, 670)}",neutral,neutral
+Spain_sc,"['Portugal', 'Mid Atlantic Ocean', 'Western Mediterranean', 'Gulf of Lyon', 'Marseiles']",fleet,True,True,neutral,"{'army': nan, 'fleet': (255, 825)}",neutral,neutral
+Sweden,"['Norway', 'Finland', 'Gulf of Bothnia', 'Baltic Sea', 'Denmark', 'Skagerrack']",both,False,True,neutral,"{'army': (595, 330), 'fleet': (650, 310)}",neutral,neutral
+Trieste,"['Venice', 'Tyrolia', 'Vienna', 'Budapest', 'Serbia', 'Albania', 'Adriatic Sea']",both,False,True,austria,"{'army': (620, 700), 'fleet': (600, 740)}",austria,austria
+Tunis,"['Ionian Sea', 'Tyrrhenian Sea', 'Western Mediterranean', 'North Africa']",both,False,True,neutral,"{'army': (450, 925), 'fleet': (470, 895)}",neutral,neutral
+Venice,"['Piedmont', 'Tyrolia', 'Trieste', 'Adriatic Sea', 'Apulia', 'Rome', 'Tuscany']",both,False,True,italy,"{'army': (510, 695), 'fleet': (530, 710)}",italy,italy
+Vienna,"['Galicia', 'Budapest', 'Trieste', 'Tyrolia', 'Bohemia']",army,False,True,austria,"{'army': (615, 615), 'fleet': nan}",austria,austria
+Warsaw,"['Livonia', 'Moscow', 'Ukraine', 'Galicia', 'Silesia', 'Prussia']",army,False,True,russia,"{'army': (700, 515), 'fleet': nan}",russia,russia
+Clyde,"['Norwegian Sea', 'North Atlantic Ocean', 'Edinburgh', 'Liverpool']",both,False,False,england,"{'army': (325, 375), 'fleet': (335, 295)}",england,england
+Yorkshire,"['Edinburgh', 'Liverpool', 'Whales', 'London', 'North Sea']",both,False,False,england,"{'army': (355, 440), 'fleet': (360, 405)}",england,england
+North Atlantic Ocean,"['Norwegian Sea', 'Irish Sea', 'Mid Atlantic Ocean', 'Clyde', 'Liverpool']",fleet,False,False,neutral,"{'army': nan, 'fleet': (150, 200)}",neutral,neutral
+Mid Atlantic Ocean,"['North Atlantic Ocean', 'Irish Sea', 'English Channel', 'Western Mediterranean', 'Spain', 'Spain_nc', 'Portugal', 'Spain_sc', 'Gascony', 'Brest', 'North Africa']",fleet,False,False,neutral,"{'army': nan, 'fleet': (100, 580)}",neutral,neutral
+Norwegian Sea,"['Barents Sea', 'North Atlantic Ocean', 'North Sea', 'Clyde', 'Edinburgh', 'Norway']",fleet,False,False,neutral,"{'army': nan, 'fleet': (475, 130)}",neutral,neutral
+North Sea,"['Norwegian Sea', 'Skagerrack', 'Helgoland Bight', 'English Channel', 'Norway', 'Denmark', 'Holland', 'Belgium', 'London', 'Yorkshire', 'Edinburgh']",fleet,False,False,neutral,"{'army': nan, 'fleet': (430, 345)}",neutral,neutral
+English Channel,"['North Sea', 'Belgium', 'Picardy', 'Brest', 'Mid Atlantic Ocean', 'Irish Sea', 'Whales', 'London']",fleet,False,False,neutral,"{'army': nan, 'fleet': (290, 520)}",neutral,neutral
+Irish Sea,"['North Atlantic Ocean', 'Liverpool', 'Whales', 'English Channel', 'Mid Atlantic Ocean']",fleet,False,False,neutral,"{'army': nan, 'fleet': (235, 465)}",neutral,neutral
+Skagerrack,"['North Sea', 'Norway', 'Sweden', 'Denmark']",fleet,False,False,neutral,"{'army': nan, 'fleet': (540, 345)}",neutral,neutral
+Baltic Sea,"['Gulf of Bothnia', 'Livonia', 'Prussia', 'Berlin', 'Kiel', 'Denmark', 'Sweden']",fleet,False,False,neutral,"{'army': nan, 'fleet': (610, 435)}",neutral,neutral
+Gulf of Bothnia,"['Sweden', 'Finland', 'St Petersburg', 'St Petersburg_sc', 'Livonia', 'Baltic Sea']",fleet,False,False,neutral,"{'army': nan, 'fleet': (680, 320)}",neutral,neutral
+Barents Sea,"['Norwegian Sea', 'Norway', 'St Petersburg', 'St Petersburg_nc']",fleet,False,False,neutral,"{'army': nan, 'fleet': (860, 25)}",neutral,neutral
+Western Mediterranean,"['Mid Atlantic Ocean', 'North Africa', 'Tunis', 'Tyrrhenian Sea', 'Gulf of Lyon', 'Spain', 'Spain_sc']",fleet,False,False,neutral,"{'army': nan, 'fleet': (320, 850)}",neutral,neutral
+Gulf of Lyon,"['Marseiles', 'Piedmont', 'Tuscany', 'Tyrrhenian Sea', 'Western Mediterranean', 'Spain', 'Spain_sc']",fleet,False,False,neutral,"{'army': nan, 'fleet': (390, 760)}",neutral,neutral
+Tyrrhenian Sea,"['Ionian Sea', 'Naples', 'Rome', 'Tuscany', 'Gulf of Lyon', 'Western Mediterranean', 'Tunis']",fleet,False,False,neutral,"{'army': nan, 'fleet': (500, 830)}",neutral,neutral
+Ionian Sea,"['Tunis', 'Tyrrhenian Sea', 'Naples', 'Apulia', 'Adriatic Sea', 'Albania', 'Greece', 'Aegean Sea', 'Eastern Mediterranean']",fleet,False,False,neutral,"{'army': nan, 'fleet': (620, 925)}",neutral,neutral
+Adriatic Sea,"['Apulia', 'Venice', 'Trieste', 'Albania', 'Ionian Sea']",fleet,False,False,neutral,"{'army': nan, 'fleet': (600, 760)}",neutral,neutral
+Aegean Sea,"['Ionian Sea', 'Greece', 'Bulgaria', 'Bulgaria_sc', 'Constantinople', 'Smyrna', 'Eastern Mediterranean']",fleet,False,False,neutral,"{'army': nan, 'fleet': (780, 900)}",neutral,neutral
+Eastern Mediterranean,"['Syria', 'Smyrna', 'Aegean Sea', 'Ionian Sea']",fleet,False,False,neutral,"{'army': nan, 'fleet': (880, 940)}",neutral,neutral
+Black Sea,"['Sevastopol', 'Armenia', 'Ankara', 'Constantinople', 'Bulgaria', 'Bulgaria_ec', 'Rumania']",fleet,False,False,neutral,"{'army': nan, 'fleet': (930, 720)}",neutral,neutral
+Picardy,"['Brest', 'Paris', 'Burgundy', 'Belgium', 'English Channel']",both,False,False,france,"{'army': (375, 543), 'fleet': (350, 533)}",france,france
+Gascony,"['Brest', 'Paris', 'Burgundy', 'Marseiles', 'Spain', 'Mid Atlantic Ocean', 'Spain_nc']",both,False,False,france,"{'army': (320, 670), 'fleet': (290, 650)}",france,france
+Burgundy,"['Paris', 'Picardy', 'Belgium', 'Ruhr', 'Munich', 'Marseiles', 'Gascony']",army,False,False,france,"{'army': (400, 615), 'fleet': nan}",france,france
+North Africa,"['Tunis', 'Western Mediterranean', 'Mid Atlantic Ocean']",both,False,False,neutral,"{'army': (240, 925), 'fleet': (240, 885)}",neutral,neutral
+Ruhr,"['Belgium', 'Holland', 'Kiel', 'Munich', 'Burgundy']",army,False,False,germany,"{'army': (470, 540), 'fleet': nan}",germany,germany
+Prussia,"['Baltic Sea', 'Livonia', 'Warsaw', 'Silesia', 'Berlin']",both,False,False,germany,"{'army': (620, 485), 'fleet': (640, 450)}",germany,germany
+Silesia,"['Prussia', 'Warsaw', 'Galicia', 'Bohemia', 'Munich', 'Berlin']",army,False,False,germany,"{'army': (610, 530), 'fleet': nan}",germany,germany
+Piedmont,"['Tyrolia', 'Venice', 'Tuscany', 'Marseiles', 'Gulf of Lyon']",both,False,False,italy,"{'army': (460, 680), 'fleet': (465, 705)}",italy,italy
+Tuscany,"['Venice', 'Rome', 'Tyrrhenian Sea', 'Gulf of Lyon', 'Piedmont']",both,False,False,italy,"{'army': (515, 735), 'fleet': (490, 735)}",italy,italy
+Apulia,"['Adriatic Sea', 'Venice', 'Ionian Sea', 'Naples', 'Rome']",both,False,False,italy,"{'army': (600, 810), 'fleet': (590, 780)}",italy,italy
+Tyrolia,"['Munich', 'Bohemia', 'Vienna', 'Trieste', 'Venice', 'Piedmont']",army,False,False,austria,"{'army': (570, 625), 'fleet': nan}",austria,austria
+Galicia,"['Warsaw', 'Ukraine', 'Rumania', 'Budapest', 'Vienna', 'Bohemia', 'Silesia']",army,False,False,austria,"{'army': (740, 590), 'fleet': nan}",austria,austria
+Bohemia,"['Silesia', 'Galicia', 'Vienna', 'Tyrolia', 'Munich']",army,False,False,austria,"{'army': (575, 575), 'fleet': nan}",austria,austria
+Finland,"['Norway', 'St Petersburg', 'St Petersburg_sc', 'Gulf of Bothnia', 'Sweden']",both,False,False,russia,"{'army': (740, 250), 'fleet': (685, 250)}",russia,russia
+Livonia,"['Gulf of Bothnia', 'St Petersburg', 'St Petersburg_sc', 'Moscow', 'Prussia', 'Baltic Sea', 'Warsaw']",both,False,False,russia,"{'army': (740, 420), 'fleet': (730, 375)}",russia,russia
+Ukraine,"['Moscow', 'Sevastopol', 'Rumania', 'Galicia', 'Warsaw']",army,False,False,russia,"{'army': (830, 550), 'fleet': nan}",russia,russia
+Albania,"['Adriatic Sea', 'Trieste', 'Serbia', 'Greece', 'Ionian Sea']",both,False,False,neutral,"{'army': (675, 815), 'fleet': (660, 790)}",neutral,neutral
+Armenia,"['Sevastopol', 'Syria', 'Smyrna', 'Ankara', 'Black Sea']",both,False,False,turkey,"{'army': (1100, 800), 'fleet': (1060, 750)}",turkey,turkey
+Syria,"['Armenia', 'Eastern Mediterranean', 'Smyrna']",both,False,False,turkey,"{'army': (1080, 900), 'fleet': (1005, 940)}",turkey,turkey
+Helgoland Bight,"['Denmark', 'Kiel', 'Holland', 'North Sea']",fleet,False,False,neutral,"{'army': nan, 'fleet': (460, 435)}",neutral,neutral
+Whales,"['English Channel', 'Irish Sea', 'Liverpool', 'Yorkshire', 'London']",both,False,False,england,"{'army': (315, 455), 'fleet': (280, 480)}",england,england
