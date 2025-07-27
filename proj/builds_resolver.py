@@ -22,10 +22,10 @@ class BuildsMaker:
         self.convoy_pairs = convoy_pairs
         self.convoyable_countries = convoyable_countries
 
-    def make_builds(self, units_df, territories_df, loss_fn, policy = None, human = False, model = None, unit_rewards = None, active_country=None, naive_builds_policy=None, rewards_calculator=None):
+    def make_builds(self, units_df, territories_df, loss_fn, policy = None, human = False, model = None, unit_rewards = None, active_country=None, naive_builds_policy=None, rewards_calculator=None, country_iter_list = None):
         begin = time()
         builds_output_dict = {}
-        for c in ['france','italy','england','russia','germany','austria','turkey']:
+        for c in country_iter_list:
             if naive_builds_policy is not None and c!=active_country:
                 policy = naive_builds_policy
             # else:
@@ -78,3 +78,5 @@ class BuildsMaker:
                         units_df = units_df[~(units_df['location']==disband_loc[0])]
         calc_time_diff(begin, 'make_builds')
         return units_df.reset_index(drop=True), builds_output_dict
+
+

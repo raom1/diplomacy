@@ -107,6 +107,10 @@ class RewardsCalculator:
         if len(controlled_scs) == 0:
             mean_sc_dist_ratio_reward = 0
         else:
+            # print(allies)
+            # print(owner)
+            # print(resolved_orders)
+            # print(resolved_orders.loc[~resolved_orders['owner'].isin(allies[owner]), ['start', 'end']].values)
             unallied_start, unallied_end = list(zip(*resolved_orders.loc[~resolved_orders['owner'].isin(allies[owner]), ['start', 'end']].values))
             unallied_mean_dist_start = np.mean([nx.shortest_path_length(self.G, l, r) for r in unallied_start for l in controlled_scs])
             unallied_mean_dist_end = np.mean([nx.shortest_path_length(self.G, l, r) for r in unallied_end for l in controlled_scs])

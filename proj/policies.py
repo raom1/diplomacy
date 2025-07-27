@@ -106,7 +106,7 @@ def test_build_policy(num_builds, owner, model, units_df, build_loss_fn, territo
         build_disband_choice = None
     elif len(model_choices) == 0: # and all_choices.shape[0] > 0
         assert build_disband not in units_df[units_df['owner']==owner]['type'].tolist(), '{} does have {}, check what went wrong'.format(owner, build_disband)
-        print('TO DO: Skip model prediction if only one unit type for owner')
+        #print('TO DO: Skip model prediction if only one unit type for owner')
         if build_disband == 'fleet':
             build_disband = 'army'
         else:
@@ -119,19 +119,16 @@ def test_build_policy(num_builds, owner, model, units_df, build_loss_fn, territo
     return (build_disband_choice, build_disband), out_probs, grads #army_proba
 
 
-def test_naive_policy(possible_orders_list, unit, owner, model, units_df):
+def test_naive_policy(target_territories_list, output_dim):
     begin = time()
-    out_probs = [1/territories_df.shape[0]]*territories_df.shape[0]
+    out_probs = [1/output_dim]*output_dim
     grads = [[]]
-    if len(possible_orders_list) > 0:
-        calc_time_diff(begin, 'test_naive_policy')
-        return random.choice(possible_orders_list), out_probs, grads
-    else:
-        calc_time_diff(begin, 'test_naive_policy')
-        return (unit, 'disband', unit), out_probs, grads
+    target_territory = random.choice(target_territories_list)
+    calc_time_diff(begin, 'test_naive_policy')
+    return target_territory, out_probs, grads
 
 
-def test_naive_build_policy(num_builds, owner, model, units_df):
+def test_naive_build_policy(num_builds, owner, model, units_df, build_loss_fn, territories_df):
     begin = time()
     if num_builds > 0:
         possible_builds = list(territories_df.loc[(territories_df['start_control']==owner)&\
