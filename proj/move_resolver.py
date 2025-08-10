@@ -388,18 +388,18 @@ class MoveResolver:
 					if unit_type=='fleet':
 						# print(active_country)
 						# print(owner)
-						if active_country is not None and owner == active_country:
+						# if active_country is not None and owner == active_country:
 							# print("caught")
-							target, out_probs, grads = policy(sea_policy_country_list, c, owner, sea_model, units_df, territories_df, loss_fn)
-						else:
-							target, out_probs, grads = naive_policy(sea_policy_country_list, 64)
+						target, out_probs, grads = policy(sea_policy_country_list, c, owner, sea_model, units_df, territories_df, loss_fn)
+						# else:
+						# 	target, out_probs, grads = naive_policy(sea_policy_country_list, 64)
 						model_ver = 'sea'
 					elif unit_type=='army':
-						if active_country is not None and owner == active_country:
+						# if active_country is not None and owner == active_country:
 							# print('caught')
-							target, out_probs, grads = policy(land_policy_country_list, c, owner, land_model, units_df, territories_df, loss_fn)
-						else:
-							target, out_probs, grads = naive_policy(land_policy_country_list, 56)
+						target, out_probs, grads = policy(land_policy_country_list, c, owner, land_model, units_df, territories_df, loss_fn)
+						# else:
+						# 	target, out_probs, grads = naive_policy(land_policy_country_list, 56)
 						model_ver = 'land'
 					else:
 						raise TypeError('Unknown unit type: {}'.format(unit_type))
@@ -415,7 +415,7 @@ class MoveResolver:
 				orders_dict[c]['out_probs'] = out_probs
 				orders_dict[c]['grads'] = grads
 				orders_dict[c]['model_ver'] = model_ver
-				orders_dict[c]['active_country'] = owner == active_country
+				orders_dict[c]['active_country'] = owner == active_country or active_country is None
 			# print(orders_dict)
 			group_moves_dict = {}
 			for d in set([v['target'] for v in unit_all_orders_dict.values()]):

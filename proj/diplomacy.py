@@ -55,6 +55,7 @@ build_optimizer = optim.NAdam(builds_model.parameters())
 build_loss_fn = nn.BCELoss()
 
 active_country = "italy"
+max_num_rounds = 100
 
 def initialize_game_assets():
 	if not os.path.isdir("assets/game_assets"):
@@ -127,8 +128,8 @@ def play_one_round(policy, units_df, territories_df, o = None, retreat = False, 
             resolved_retreats.loc[resolved_retreats['order']=='move', 'order'] = 'retreat'
             for c in resolved_retreats['start']:
                 resolved_orders.loc[resolved_orders['start']==c, ['start', 'order', 'end', 'support', 'convoy', 'count']] = resolved_retreats.loc[resolved_retreats['start']==c, ['start', 'order', 'end', 'support', 'convoy', 'count']].values[0].tolist()
-        units_df = resolved_orders[resolved_orders['order'] != 'disband'][['end', 'type', 'owner', 'unit_id']]
-        units_df.columns = ['location', 'type', 'owner', 'unit_id']
+        units_df = resolved_orders[resolved_orders['order'] != 'disband'][['end', 'type', 'owner', 'unit_id', 'metadata']]
+        units_df.columns = ['location', 'type', 'owner', 'unit_id', 'metadata']
         calc_time_diff(begin, 'play_one_round')
         return units_df, resolved_orders, original_orders, season, *move_resolver.update_territories_df(units_df, territories_df, season)
     else:
@@ -139,14 +140,14 @@ def check_win(territories_df, rounds):
     begin = time()
     sc_count = territories_df[(territories_df['sc'])&(territories_df['coast']==False)]['sc_control'].value_counts()
     for c, scs in sc_count.items():
-        if (scs >= 18) or (rounds >= 350 and scs == sc_count.max()):
+        if (scs >= 18) or (rounds >= max_num_rounds and scs == sc_count.max()):
             return c
     calc_time_diff(begin, 'check_win')
     return None
 
 
 def main():
-	for _ in range(10): #100
+	for _ in range(3): #100
 		print('starting batch {}'.format(_))
 		num_rounds = []
 
@@ -154,13 +155,14 @@ def main():
 		build_discount_factor = 0.5
 		num_trials = 1
 
-		if active_country is None:
-			country_iter_list = ['france','italy','england','russia','germany','austria','turkey']
-		else:
-			country_iter_list = [active_country]
+		# if active_country is None:
+		country_iter_list = ['france','italy','england','russia','germany','austria','turkey']
+		# else:
+			# country_iter_list = [active_country]
 
 		for _ in range(num_trials):
 			territories, territories_df, units_df, G, convoy_pairs, convoyable_countries = initialize_game_assets()
+			units_df["metadata"] = [{"is_active": owner == active_country, "out_probs_ind": None, "grads_ind": None, "model_ver": None} for owner in units_df["owner"].tolist()]
 			move_resolver = MoveResolver(territories, G, convoy_pairs, convoyable_countries)
 			rewards_calculator = RewardsCalculator(territories, G, convoy_pairs, convoyable_countries)
 			builds_maker = BuildsMaker(territories, G, convoy_pairs, convoyable_countries)
@@ -173,7 +175,7 @@ def main():
 			rounds = 0
 			save_grads_list = []
 			save_build_grads_list = []
-			while winner is None and rounds < 350:
+			while winner is None and rounds < max_num_rounds:
 				rounds += 1
 				print(f"starting round {rounds}")
 				allies = {country:[country] for country in ['france','italy','england','russia','germany','austria','turkey']}
@@ -197,11 +199,15 @@ def main():
 																														move_resolver=move_resolver,
 																														allies=allies
 																														)
+				# print(f"{units_df}\n{resolved_orders}")
 				assert not any([v > 1 for v in Counter([c.split('_')[0] for c in units_df['location']]).values()]), 'too many units in a country, check units_df'
 				
 				## CALCULATE MOVE REWARDS ##
 				if apply_rl:
-					all_rewards_grads = {uid:{'reward':0, 'grads':np.nan, 'owner':None, 'model_ver':None} for owner, uid in resolved_orders[["owner", "unit_id"]].itertuples(index=None, name=None) if owner == active_country} #'reward':np.nan
+					if active_country is not None:
+						all_rewards_grads = {uid:{'reward':0, 'grads':np.nan, 'owner':None, 'model_ver':None} for owner, uid in resolved_orders[["owner", "unit_id"]].itertuples(index=None, name=None) if owner == active_country} #'reward':np.nan
+					else:
+						all_rewards_grads = {uid:{'reward':0, 'grads':np.nan, 'owner':None, 'model_ver':None} for owner, uid in resolved_orders[["owner", "unit_id"]].itertuples(index=None, name=None)}
 					# for grads, ver, (ind, row) in zip(all_grads, all_model_vers, resolved_orders.iterrows()):
 					for ind, row in resolved_orders.iterrows():
 						if row["metadata"]['is_active']:
@@ -212,7 +218,7 @@ def main():
 								raise
 							if row['owner'] is None:
 								print(row)
-							if row['owner'] == active_country:
+							if row['owner'] == active_country or active_country is None:
 								# print(row['owner'], active_country)
 								if math.isnan(rewards_calculator.calc_order_reward(units_df, territories_df, row['owner'], row['target'], old_territories_df, allies, resolved_orders)):
 									print('got nan reward:')
@@ -257,18 +263,19 @@ def main():
 							num_builds_owner[c] = sum((territories_df['sc_control']==c)&(territories_df['sc']==True)&(territories_df['coast']==False)) - sum(units_df['owner']==c)
 						owner_build_disband_mean_reward = rewards_calculator.calc_owner_disband_unit_reward(total_build_rewards_grads)
 						for k, v in builds_output_dict.items():
-							if pre_post_diff[v['owner']] > 0:
-								# why doing this? it seems like a very high reward, changed from 5 to 2 on 4/20/24
-								builds_output_dict[k]['rewards'].append(num_builds_owner[total_build_rewards_grads[2][k]['owner']]*2)
-								builds_output_dict[k]['rewards'].append(sum(d[k]['reward'] for d in total_build_rewards_grads[2:] if k in d.keys()))
-							elif pre_post_diff[v['owner']] < 0:
-								try:
-									builds_output_dict[k]['rewards'].append((num_builds_owner[total_build_rewards_grads[1][k]['owner']]+1)*2)
-									builds_output_dict[k]['rewards'].append(owner_build_disband_mean_reward[total_build_rewards_grads[1][k]['owner']])
-								except KeyError:
-									if k in total_build_rewards_grads[2].keys() and k in total_build_rewards_grads[3].keys():
-										builds_output_dict[k]['rewards'].append(num_builds_owner[total_build_rewards_grads[2][k]['owner']]*2)
-										builds_output_dict[k]['rewards'].append(sum(d[k]['reward'] for d in total_build_rewards_grads[2:]))
+							if v["owner"] == active_country:
+								if pre_post_diff[v['owner']] > 0:
+									# why doing this? it seems like a very high reward, changed from 5 to 2 on 4/20/24
+									builds_output_dict[k]['rewards'].append(num_builds_owner[total_build_rewards_grads[2][k]['owner']]*2)
+									builds_output_dict[k]['rewards'].append(sum(d[k]['reward'] for d in total_build_rewards_grads[2:] if k in d.keys()))
+								elif pre_post_diff[v['owner']] < 0:
+									try:
+										builds_output_dict[k]['rewards'].append((num_builds_owner[total_build_rewards_grads[1][k]['owner']]+1)*2)
+										builds_output_dict[k]['rewards'].append(owner_build_disband_mean_reward[total_build_rewards_grads[1][k]['owner']])
+									except KeyError:
+										if k in total_build_rewards_grads[2].keys() and k in total_build_rewards_grads[3].keys():
+											builds_output_dict[k]['rewards'].append(num_builds_owner[total_build_rewards_grads[2][k]['owner']]*2)
+											builds_output_dict[k]['rewards'].append(sum(d[k]['reward'] for d in total_build_rewards_grads[2:]))
 						builds_output_dict = {k:{'reward': sum(v['rewards']), 'grads': v['grads'], 'owner': v['owner']} for k, v in builds_output_dict.items()}
 						grouped_build_output_dict = {c:{} for c in country_iter_list}
 						for k, v in builds_output_dict.items():
@@ -286,6 +293,9 @@ def main():
 																			naive_builds_policy = test_naive_build_policy,
 																			rewards_calculator = rewards_calculator,
 																			country_iter_list = country_iter_list) #test_build_policy
+					# print(f"{builds_output_dict.keys()=}")
+					# for v in builds_output_dict.values():
+					# 	print(v["owner"])
 					save_build_grads_list.append(builds_output_dict)
 
 				winner = check_win(territories_df, rounds)

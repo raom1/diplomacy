@@ -26,11 +26,12 @@ class BuildsMaker:
         begin = time()
         builds_output_dict = {}
         for c in country_iter_list:
-            if naive_builds_policy is not None and c!=active_country:
-                policy = naive_builds_policy
+            # if naive_builds_policy is not None and c!=active_country:
+            #     policy = naive_builds_policy
             # else:
             #     policy = policy
             num_builds = sum((territories_df['sc_control']==c)&(territories_df['sc']==True)&(territories_df['coast']==False)) - sum(units_df['owner']==c)
+            # print(f"{c=}, {num_builds=}")
             if num_builds > 0:
                 if human:
                     b = input('Enter builds [(location, unit type)]: ')
@@ -50,8 +51,9 @@ class BuildsMaker:
                             build_loc, army_proba, grads = build_policy_out
                         except ValueError:
                             build_loc, army_proba, grads = build_policy_out, np.nan, np.nan
+                        # print(f"{build=}, {build_loc=}")
                         if build_loc[0] is not None:
-                            build_loc = (build_loc[0], build_loc[1], c, str(uuid4()))
+                            build_loc = (build_loc[0], build_loc[1], c, str(uuid4()), {"is_active": None, "out_probs_ind": None, "grads_ind": None, "model_ver": None})
                             builds_output_dict[build_loc[3]] = {'rewards': [], 'grads': grads, 'owner': c}
                             units_df = pd.concat([units_df, pd.DataFrame([build_loc], columns = units_df.columns)], ignore_index=True)
             if num_builds < 0:
@@ -73,7 +75,8 @@ class BuildsMaker:
                             print(units_df)
                             print(disband_loc)
                             raise e
-                        build_rewards_list.append(rewards_calculator.calc_unit_performance_reward(units_df, c, unit_id, unit_rewards))
+                        if c == active_country:
+                            build_rewards_list.append(rewards_calculator.calc_unit_performance_reward(units_df, c, unit_id, unit_rewards))
                         builds_output_dict[unit_id] = {'rewards': build_rewards_list, 'grads': grads, 'owner': c}
                         units_df = units_df[~(units_df['location']==disband_loc[0])]
         calc_time_diff(begin, 'make_builds')

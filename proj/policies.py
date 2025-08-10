@@ -23,7 +23,12 @@ from utils.rl_utils import make_model_input_arrays
 def test_policy(target_territories_list, unit, owner, model, units_df, territories_df, loss_fn):
     begin = time()
     active_unit_array, combined_array, unit_type_array = make_model_input_arrays(owner, units_df, territories_df, move=True, unit=unit)
-    out_probs = model(torch.tensor(torch.tensor(np.array([active_unit_array, combined_array, unit_type_array])[np.newaxis]).float(), requires_grad=True))
+    if units_df[units_df['location']==unit]['metadata'].tolist()[0]["is_active"]:
+        out_probs = model(torch.tensor(torch.tensor(np.array([active_unit_array, combined_array, unit_type_array])[np.newaxis]).float(), requires_grad=True))
+    else:
+        out_probs_shape = list(model.parameters())[-1].shape[0]
+        out_probs = torch.tensor([[1/out_probs_shape]*out_probs_shape])
+        
     rand_prob = torch.rand(1)
     cumsum = torch.cumsum(out_probs[0], dim=0)
     action = torch.where(torch.logical_and(cumsum[1:] > rand_prob, cumsum[:-1] < rand_prob) == True)
@@ -44,9 +49,12 @@ def test_policy(target_territories_list, unit, owner, model, units_df, territori
         print(combined_array)
         print(unit_type_array)
         raise TypeError
-    loss = loss_fn(out_probs, y_target)
-    loss.backward()
-    grads = [param.grad for param in model.parameters()]
+    if units_df[units_df['location']==unit]['metadata'].tolist()[0]["is_active"]:
+        loss = loss_fn(out_probs, y_target)
+        loss.backward()
+        grads = [param.grad for param in model.parameters()]
+    else:
+        grads = [[]]
     target_territory = target_territories_list[action[0].numpy()[0]]
     calc_time_diff(begin, 'test_policy')
     return target_territory, out_probs, grads
@@ -74,8 +82,12 @@ def test_build_policy(num_builds, owner, model, units_df, build_loss_fn, territo
         # except ZeroDivisionError:
         #     action_prob_offset = 0
         # action_prob = torch.rand(1) + action_prob_offset
-
-    out_probs = model(torch.tensor(torch.tensor(np.array([build_disband_choices, combined_array, unit_type_array])[np.newaxis]).float(), requires_grad=True))
+    # print(f"{units_df[units_df['owner']==owner]['metadata'].tolist()[0]['is_active']}")
+    if units_df[units_df['owner']==owner]['metadata'].tolist()[0]["is_active"]:
+        out_probs = model(torch.tensor(torch.tensor(np.array([build_disband_choices, combined_array, unit_type_array])[np.newaxis]).float(), requires_grad=True))
+    else:
+        out_probs = torch.tensor([[0.5, 0.5]])
+    # print(out_probs)
     # out_probs += action_prob # also commented for switch to pytorch
     rand_prob = torch.rand(1)
     cumsum = torch.cumsum(out_probs[0], dim=0)
@@ -90,14 +102,17 @@ def test_build_policy(num_builds, owner, model, units_df, build_loss_fn, territo
             action = (torch.tensor([len(cumsum) - 1], dtype=torch.int64),)
     y_target = torch.zeros(1, len(out_probs[0]))
     y_target[0, action] = 1
-    try:
-        loss = build_loss_fn(out_probs, y_target)
-    except RuntimeError:
-        print(out_probs)
-        print(y_target)
-        raise RuntimeError
-    loss.backward()
-    grads = [param for name, param in model.named_parameters()]
+    if units_df[units_df['owner']==owner]['metadata'].tolist()[0]["is_active"]:
+        try:
+            loss = build_loss_fn(out_probs, y_target)
+        except RuntimeError:
+            print(out_probs)
+            print(y_target)
+            raise RuntimeError
+        loss.backward()
+        grads = [param for name, param in model.named_parameters()]
+    else:
+        grads = [[]]
     build_disband_list = ['army', 'fleet']
     build_disband = build_disband_list[action[0].numpy()[0]]
     all_choices = territories_df[[bool(i) for i in build_disband_choices]]
