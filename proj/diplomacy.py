@@ -11,6 +11,7 @@ import random
 from uuid import uuid4
 import math
 from time import sleep, time
+from multiprocessing import Process
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -146,9 +147,9 @@ def check_win(territories_df, rounds):
     return None
 
 
-def main():
+def main(process_num):
 	for _ in range(3): #100
-		print('starting batch {}'.format(_))
+		print(f'starting batch {_} on thread {process_num}')
 		num_rounds = []
 
 		discount_factor = 0.5
@@ -161,6 +162,7 @@ def main():
 			# country_iter_list = [active_country]
 
 		for _ in range(num_trials):
+			begin = time()
 			territories, territories_df, units_df, G, convoy_pairs, convoyable_countries = initialize_game_assets()
 			units_df["metadata"] = [{"is_active": owner == active_country, "out_probs_ind": None, "grads_ind": None, "model_ver": None} for owner in units_df["owner"].tolist()]
 			move_resolver = MoveResolver(territories, G, convoy_pairs, convoyable_countries)
@@ -177,7 +179,7 @@ def main():
 			save_build_grads_list = []
 			while winner is None and rounds < max_num_rounds:
 				rounds += 1
-				print(f"starting round {rounds}")
+				print(f"starting round {rounds} on thread {process_num}")
 				allies = {country:[country] for country in ['france','italy','england','russia','germany','austria','turkey']}
 				sea_optimizer.zero_grad()
 				land_optimizer.zero_grad()
@@ -215,6 +217,9 @@ def main():
 							ver = row["metadata"]['model_ver']
 							if grads == [[]]:
 								print(row)
+								print(row['metadata'])
+								print(resolved_orders)
+								print([(i, len(g)) for i, g in enumerate(all_grads)])
 								raise
 							if row['owner'] is None:
 								print(row)
@@ -385,12 +390,17 @@ def main():
 			except IndexError as e:
 				assert len(list(zip(build_reward_grads, builds_model.parameters()))) == 0, "something happened: build_reward_grads: {}, zip: {}, len trainable_variables: {}".format(build_reward_grads, len(list(zip(build_reward_grads, builds_model.parameters()))), len(builds_model.parameters()))
 				print('no builds to update, this is an error, check what is happening')
+			print(time()-begin)
 		all_num_rounds.append(num_rounds)
 		active_countries_list.append(active_country)
 	print('done')
 
 if __name__ == "__main__":
 
-	main()
+	for i in range(3):
+		Process(target=main, args=(i,)).start()
+		# p.start()
+		# p.join()
+	# main()
 
 

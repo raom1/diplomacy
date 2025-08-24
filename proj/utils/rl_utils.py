@@ -187,7 +187,10 @@ class RewardsCalculator:
             for c, c_v in d.items():
                 for u, u_v in c_v.items():
                     all_build_rewards_grads[i][c][u]['reward'] = (u_v['reward']-reward_mean)/reward_std
-                    reward_grads.append([all_build_rewards_grads[i][c][u]['reward'] * g for g in all_build_rewards_grads[i][c][u]['grads']])
+                    try:
+                        reward_grads.append([all_build_rewards_grads[i][c][u]['reward'] * g for g in all_build_rewards_grads[i][c][u]['grads']])
+                    except Exception as e:
+                        print(f"Skipped processing reward for unit {u} belonging to {c}: Reward: {all_build_rewards_grads[i][c][u]['reward']}, Grads: {all_build_rewards_grads[i][c][u]['grads']}")
         calc_time_diff(begin, 'discount_normalize_apply_build_rewards')
         return reward_grads #all_build_rewards_grads
 

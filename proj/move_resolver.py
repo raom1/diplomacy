@@ -23,6 +23,10 @@ class MoveResolver:
 		self.G = G
 		self.convoy_pairs = convoy_pairs
 		self.convoyable_countries = convoyable_countries
+		self.units_df = None
+		self.territories_df = None
+		self.submitted_moves_df = None
+		self.orders_list = None
 
 	def check_destination_valid(self, start, end):
 		begin = time()
@@ -30,13 +34,13 @@ class MoveResolver:
 		calc_time_diff(begin, 'check_destination_valid')
 		return out
 
-	def check_unit_type_valid(self, territories_df, unit_type, end):
+	def check_unit_type_valid(self, unit_type, end):
 		begin = time()
-		out = unit_type == territories_df.loc[territories_df['country']==end, 'unit_type'].values[0] or territories_df.loc[territories_df['country']==end, 'unit_type'].values[0] == 'both'
+		out = unit_type == self.territories_df.loc[self.territories_df['country']==end, 'unit_type'].values[0] or self.territories_df.loc[self.territories_df['country']==end, 'unit_type'].values[0] == 'both'
 		calc_time_diff(begin, 'check_unit_type_valid')
 		return out
 
-	def check_order(self, units_df, territories_df, start, order = None, end = None, support = None, convoy = None):
+	def check_order(self, start, order = None, end = None, support = None, convoy = None):
 
 		begin = time()
 		if order is None:
@@ -55,12 +59,12 @@ class MoveResolver:
 				assert c in self.territories.keys(), '"{}" is not a recognized country, cannot convoy'.format(c)
 		
 		try:
-			unit_type = units_df.loc[units_df['location']==start, 'type'].values[0]
+			unit_type = self.units_df.loc[self.units_df['location']==start, 'type'].values[0]
 		except IndexError:
 			raise AssertionError('no unit in {}'.format(start))
 		
 		if order == 'move':
-			assert self.check_unit_type_valid(territories_df, unit_type, end), 'unit in {} cannot move to {}'.format(start, end)
+			assert self.check_unit_type_valid(unit_type, end), 'unit in {} cannot move to {}'.format(start, end)
 			assert self.check_destination_valid(start, end) or (self.territories[start]['unit_type'] == 'both' and self.territories[end]['unit_type'] == 'both'), '{} not connected to {}'.format(start, end)
 			if unit_type == 'fleet':
 				# ensure don't move from fleet/both to fleet/both if not connected by fleet/both territory
@@ -73,237 +77,31 @@ class MoveResolver:
 				support_move = 'hold'
 			else:
 				support_move = 'move'
-			assert self.check_order(units_df, territories_df, start, 'move', support[1]) and self.check_order(units_df, territories_df, support[0], support_move, support[1])[0], 'cannot support {} or supported move is not valid'.format(support[1])
+			assert self.check_order(start, 'move', support[1]) and self.check_order(support[0], support_move, support[1])[0], 'cannot support {} or supported move is not valid'.format(support[1])
 		
 		if order == 'convoy':
 			assert unit_type == 'fleet' and self.territories[start]['unit_type'] == 'fleet' and not self.territories[start]['coast']
-			assert self.check_order(units_df, territories_df, convoy[0], 'move', convoy[1])[0]
+			assert self.check_order(convoy[0], 'move', convoy[1])[0]
 			
 		if order == 'retreat':
 	#         print('got to retreat')
-			if all([c in units_df['location'].tolist() for c in self.territories[start]['connected_to']]):
+			if all([c in self.units_df['location'].tolist() for c in self.territories[start]['connected_to']]):
 	#             print('caught')
 				order = 'disband'
 				end = np.nan
 			else:
 	#             print('missed')
-				assert self.check_unit_type_valid(territories_df, unit_type, end), 'unit in {} cannot move to {}'.format(start, end)
+				assert self.check_unit_type_valid(unit_type, end), 'unit in {} cannot move to {}'.format(start, end)
 				assert self.check_destination_valid(start, end) or (self.territories[start]['unit_type'] == 'both' and self.territories[end]['unit_type'] == 'both'), 'unit cannot move from {} to {}'.format(start, end)
 		calc_time_diff(begin, 'check_order')
 		return True, (start, order, end, support, convoy)
 
-	def submit_move(self, units_df, territories_df, start, order = None, end = None, support = None, convoy = None):
-		begin = time()
-		valid, (start, order, end, support, convoy) = self.check_order(units_df, territories_df, start, order, end, support, convoy)
-		assert valid
-		calc_time_diff(begin, 'submit_move')
-		return start, order, end, support, convoy
-
-		# DEPRICATED?
-	def cut_support(self, df):
-		begin = time()
-		df_sub = df.merge(df[df['order'] == 'move'], left_on = 'start', right_on = 'end', how = 'left')
-		df.loc[(~df_sub['start_y'].isna())&(df['order']=='support'), 'order'] = 'hold'
-		calc_time_diff(begin, 'cut_support')
-		return df
-
-	def count_support(self, df):
-	#     print('counting support')
-		begin = time()
-		endpoints = df['end'].value_counts()
-		resolve_moves = df[df['end'].isin(endpoints[endpoints > 1].index.tolist())]
-		resolve_moves['count'] = 0
-	#     print(resolve_moves)
-		for ind, sup in df['support'].items():
-			if sup is not None:
-				s, e = sup
-				resolve_moves.loc[(resolve_moves['start']==s)&(resolve_moves['end']==e), 'count'] += 1
-		calc_time_diff(begin, 'count_support')
-		return resolve_moves
-
-	def detect_self_loops(self, submitted_moves_df):
-		begin = time()
-		move_sub = submitted_moves_df[submitted_moves_df['order']=='move']
-		if move_sub.shape[0] > 0:
-			move_sub['start'] = move_sub['start'].str.split('_').str[0]
-			move_sub['end'] = move_sub['end'].str.split('_').str[0]
-			DG = nx.DiGraph()
-			DG.add_edges_from(list(zip(move_sub['start'].tolist(), move_sub['end'].tolist())))
-			calc_time_diff(begin, 'detect_self_loops')
-			return list(nx.simple_cycles(DG))
-		else:
-			calc_time_diff(begin, 'detect_self_loops')
-			return []
-
-	def check_successful_order(self, units_df, territories_df, submitted_moves_df, start, end, success = None, self_loops = []):
-		begin = time()
-		start_coast = start.split('_')[0]
-		end_coast = end.split('_')[0]
-		self_loop = ([l for l in self_loops if start in l]+[[]])[0]
-		if success is None:
-			## don't resolve previous moves of self loop to prevent infinite recursion ##
-			if not (start_coast in self_loop and end_coast in self_loop):#any([start in l and end in l for l in self_loops]):
-				## resolve dependent moves
-				if end_coast in submitted_moves_df['start'].str.split('_').str[0].tolist() and submitted_moves_df.loc[submitted_moves_df['start'].str.split('_').str[0] == end_coast, 'order'].values[0] == 'move':
-					rerun_start, rerun_end, rerun_success = submitted_moves_df[submitted_moves_df['start'].str.split('_').str[0] == end_coast][['start', 'end', 'success']].iloc[0].tolist()
-					submitted_moves_df = self.check_successful_order(units_df, territories_df, submitted_moves_df, rerun_start, rerun_end, rerun_success, self_loops)
-			## check convoy moves ##
-			if end not in territories_df.loc[territories_df['country'] == start, 'connected_to'].values[0]+[start]:
-				convoying_fleets = submitted_moves_df.loc[(submitted_moves_df['order'] == 'convoy')&(submitted_moves_df['convoy'].str[0]==start)&(submitted_moves_df['convoy'].str[1]==end), 'start'].tolist()
-				for f in convoying_fleets:
-					rerun_start, rerun_end, rerun_success = submitted_moves_df[submitted_moves_df['start'] == f][['start', 'end', 'success']].iloc[0].tolist()
-					submitted_moves_df = self.check_successful_order(units_df, territories_df, submitted_moves_df, rerun_start, rerun_end, rerun_success, self_loops)
-				convoying_fleets = submitted_moves_df[(submitted_moves_df['start'].isin(convoying_fleets))&(submitted_moves_df['success'])]['start'].tolist()
-				G_sub = nx.Graph(self.G.subgraph(convoying_fleets+[start, end]))
-				if G_sub.has_edge(start, end):
-					G_sub.remove_edge(c_1, c_2)
-				if not nx.has_path(G_sub, start, end):
-					submitted_moves_df.loc[submitted_moves_df['start'] == start, ['success', 'order', 'end', 'count']] = [False, 'hold', start, 0]
-					submitted_moves_df = self.check_successful_order(units_df, territories_df, submitted_moves_df, start, start, False, self_loops)
-			## check support moves valid ##
-			if submitted_moves_df.loc[submitted_moves_df['start'] == start, 'order'].values[0] == 'support':
-				support_start, support_end = submitted_moves_df.loc[submitted_moves_df['start'] == start, 'support'].values[0]
-				support_df = submitted_moves_df[(submitted_moves_df['start']==support_start)&(submitted_moves_df['end']==support_end)]
-				if support_df.shape[0] == 0:
-					submitted_moves_df.loc[submitted_moves_df['start'] == start, ['success', 'order', 'count']] = [False, 'hold', 0]
-					submitted_moves_df = self.check_successful_order(units_df, territories_df, submitted_moves_df, start, start, False, self_loops)
-				elif support_df.shape[0] > 1:
-					raise IndexError('Same move multiple times, {} supporting both moves'.format(start))
-			## Can't dislodge self ##
-			if end_coast in units_df['location'].str.split('_').str[0].tolist() and \
-				units_df.loc[units_df['location'].str.split('_').str[0] == end_coast, 'owner'].values[0] == units_df.loc[units_df['location'].str.split('_').str[0] == start_coast, 'owner'].values[0] and \
-				end != start \
-				and not submitted_moves_df.loc[submitted_moves_df['start'].str.split('_').str[0] == end_coast, 'success'].values[0]:
-				try:
-					assert submitted_moves_df.loc[submitted_moves_df['start'].str.split('_').str[0] == end_coast, 'order'].values[0] != 'move' or \
-							(start_coast in self_loop and end_coast in self_loop and submitted_moves_df.loc[submitted_moves_df['start'].str.split('_').str[0]==end_coast, 'end'].values[0].split('_')[0] in self_loop)
-				except AssertionError as e:
-					print(start_coast)
-					print(end_coast)
-					print(submitted_moves_df.loc[submitted_moves_df['start'].str.split('_').str[0] == end_coast])
-					print(self_loop)
-					raise AssertionError(e)
-				submitted_moves_df.loc[submitted_moves_df['start'] == start, ['success', 'order', 'end', 'count']] = [False, 'hold', start, 0]
-				submitted_moves_df = self.check_successful_order(units_df, territories_df, submitted_moves_df, start, start, False, self_loops)
-			else:
-				resolve_moves = submitted_moves_df[(submitted_moves_df['end'].isin([end, end_coast, end_coast+'_sc', end_coast+'_nc', end_coast+'_ec']))|\
-													(submitted_moves_df['start'].str.split('_').str[0].isin(self_loop))]
-				rest = submitted_moves_df.drop(resolve_moves.index)
-				not_moving = resolve_moves[resolve_moves['order']!='move']
-				if not_moving.shape[0]>0:
-					hold_owner = units_df[units_df['location']==not_moving['start'].values[0]]['owner'].values[0]
-					m=(resolve_moves['order']=='move')&\
-						(resolve_moves['start'].isin(units_df[units_df['owner']==hold_owner]['location'].tolist()))
-					resolve_moves.loc[m,'success']=False
-				if resolve_moves.shape[0] > 0 and resolve_moves['count'].value_counts().sort_index(ascending=False).tolist()[0]==1:
-					maximum = resolve_moves['count'].max()
-					top_count = maximum
-				else:
-					maximum = -1
-					top_count = resolve_moves['count'].max()
-				for ind, row in resolve_moves.iterrows():
-					if row['success'] is None:
-						if row['count'] == maximum and resolve_moves[(resolve_moves['start']==row['end'])&(resolve_moves['owner']==row['owner'])].shape[0] == 0:
-							# catch edge case with self-loop and supported move into country with same owner ^^
-							success = True
-						elif row['order'] == 'convoy' and row['count'] == top_count:
-							success = True
-						else:
-							success = False
-						resolve_moves.loc[resolve_moves['start'] == row['start'], 'success'] = success
-					else:
-						success = row['success']
-					if not success:
-						resolve_moves.loc[resolve_moves['start'] == row['start'], 'order'] = 'hold'
-						resolve_moves.loc[resolve_moves['start'] == row['start'], 'end'] = row['start']
-						resolve_moves.loc[resolve_moves['start'] == row['start'], 'count'] = 0
-						submitted_moves_rerun = self.check_successful_order(units_df, territories_df, pd.concat([rest, resolve_moves]).sort_index(), row['start'], row['start'], success, self_loops)
-						try:
-							resolve_moves.loc[resolve_moves['start'] == row['start']] = submitted_moves_rerun[submitted_moves_rerun['start'] == row['start']].values
-						except ValueError as e:
-							resolve_moves.loc[resolve_moves['start'] == row['start']] = submitted_moves_rerun[submitted_moves_rerun['start'] == row['start']].values[0]
-				submitted_moves_df = pd.concat([rest, resolve_moves]).sort_index()
-		elif not success:
-			resolve_moves = submitted_moves_df[submitted_moves_df['end'].isin([end, end_coast])]
-			rest = submitted_moves_df.drop(resolve_moves.index)
-			resolve_moves_diff_owner = resolve_moves[(resolve_moves['start']==start)|(resolve_moves['owner']!=resolve_moves.loc[resolve_moves['start']==start, 'owner'].values[0])] #remove same owners since can't dislodge self
-			maximum = resolve_moves_diff_owner['count'].max()
-			if resolve_moves_diff_owner.loc[resolve_moves_diff_owner['start'] == start, 'count'].values[0] != maximum:
-				resolve_moves.loc[resolve_moves['start'] == start, 'dislodged'] = True
-				resolve_moves.loc[resolve_moves['start'] == start, 'order'] = 'retreat'
-			else:
-				resolve_moves.loc[resolve_moves['start'] == start, 'dislodged'] = False
-			submitted_moves_df = pd.concat([rest, resolve_moves]).sort_index()
-		calc_time_diff(begin, 'check_successful_order')
-		return submitted_moves_df
-
-	def make_submitted_moves_df(self, units_df, territories_df, orders_list):
-		begin = time()
-		submitted_moves = {'start': [], 'order': [], 'end': [], 'support': [], 'convoy': []}
-		for move in orders_list:
-			if len(move) == 3:
-				if move[1] in ['move', 'retreat', 'hold']:
-					start, order, end, support, convoy = self.submit_move(units_df, territories_df, move[0], move[1], move[2])
-				elif move[1] == 'support':
-					start, order, end, support, convoy = self.submit_move(units_df, territories_df, move[0], move[1], support = move[2])
-				elif move[1] == 'convoy':
-					start, order, end, support, convoy = self.submit_move(units_df, territories_df, move[0], move[1], convoy = move[2])
-				elif move[1] == 'disband':
-					start, order, end, support, convoy = *move, None, None
-			elif len(move) == 2:
-				start, order, end, support, convoy = self.submit_move(units_df, territories_df, move[0], move[1])
-			else:
-				start, order, end, support, convoy = self.submit_move(units_df, territories_df, move[0])
-			try:
-				submitted_moves['start'].append(start)
-				submitted_moves['order'].append(order)
-				submitted_moves['end'].append(end)
-				submitted_moves['support'].append(support)
-				submitted_moves['convoy'].append(convoy)
-			except UnboundLocalError:
-				print(move)
-				print(orders_list)
-		calc_time_diff(begin, 'make_submitted_moves_df')
-		return pd.DataFrame(submitted_moves)
-
-	def resolve_submitted_moves(self, units_df, territories_df, orders_list):
-		begin = time()
-		original_orders = self.make_submitted_moves_df(units_df, territories_df, orders_list)
-		original_orders = original_orders.merge(units_df, how = 'left', left_on = 'start', right_on = 'location').drop('location', axis = 1)
-		submitted_moves_df = copy.deepcopy(original_orders)
-		support_count = self.count_support(submitted_moves_df)
-		submitted_moves_df = submitted_moves_df.merge(support_count[['start', 'count']], on = 'start', how = 'left')# right_on = 'index' .drop('index', axis = 1)
-		submitted_moves_df['count'].fillna(0)
-		submitted_moves_df['count'] = submitted_moves_df['count'].fillna(0)
-		submitted_moves_df['success'] = None
-		submitted_moves_df['dislodged'] = False
-		self_loops = self.detect_self_loops(submitted_moves_df)
-		submitted_moves_df = submitted_moves_df.sort_values('order', ascending = False).reset_index(drop=True) #ensure look at support first
-		for ind in range(len(submitted_moves_df)):
-			row = submitted_moves_df.loc[ind]
-			if row['success'] is None:
-				start, end, success = row[['start', 'end', 'success']]
-				submitted_moves_df = self.check_successful_order(units_df, territories_df, submitted_moves_df, start, end, success, self_loops)
-		calc_time_diff(begin, 'resolve_submitted_moves')
-		return submitted_moves_df, original_orders
-
-	def update_territories_df(self, units_df, territories_df, season):
-		begin = time()
-		old_territories_df = copy.deepcopy(territories_df)
-		for ind, row in units_df.iterrows():
-			territories_df.loc[territories_df['country'].str.split('_').str[0]==row['location'].split('_')[0], 'controlled_by'] = row['owner']
-		if season == 'fall':
-			for r in units_df.itertuples(index=None, name=None):
-				territories_df.loc[territories_df['country']==r[0], 'sc_control'] = r[2]
-		calc_time_diff(begin, 'update_territories_df')
-		return old_territories_df, territories_df
-
-	def make_convoy_moves(self, units_df, unit):
+	def make_convoy_moves(self, unit):
 		begin = time()
 		convoy_sub = [p for p in self.convoy_pairs if p[0] == unit]
 		convoy_moves = []
 		for c_1, c_2 in convoy_sub:
-			G_sub = nx.Graph(self.G.subgraph([x for x,y in self.G.nodes(data=True) if (x in [c_1, c_2]) or (y['unit_type'] == 'fleet' and not y['coast'] and y in units_df['location'].tolist())]))
+			G_sub = nx.Graph(self.G.subgraph([x for x,y in self.G.nodes(data=True) if (x in [c_1, c_2]) or (y['unit_type'] == 'fleet' and not y['coast'] and y in self.units_df['location'].tolist())]))
 			if G_sub.has_edge(c_1, c_2):
 				G_sub.remove_edge(c_1, c_2)
 			if nx.has_path(G_sub, c_1, c_2):
@@ -311,40 +109,40 @@ class MoveResolver:
 		calc_time_diff(begin, 'make_convoy_moves')
 		return convoy_moves
 
-	def make_all_possible_orders(self, units_df, territories_df, unit, retreat = False, excluded_ends = [], allies = []):
+	def make_all_possible_orders(self, unit, retreat = False, excluded_ends = [], allies = []):
 		begin = time()
 		orders_list = []
 		if not retreat:
 			orders_list.append((unit, 'hold', unit))
-			if unit in self.convoyable_countries and units_df.loc[units_df['location']==unit, 'type'].values[0]=='army':
-				orders_list.extend(self.make_convoy_moves(units_df, unit))
-		connected_countries = [con for con in territories_df.loc[territories_df['country']==unit, 'connected_to'].values[0] if con not in excluded_ends]
+			if unit in self.convoyable_countries and self.units_df.loc[self.units_df['location']==unit, 'type'].values[0]=='army':
+				orders_list.extend(self.make_convoy_moves(unit))
+		connected_countries = [con for con in self.territories_df.loc[self.territories_df['country']==unit, 'connected_to'].values[0] if con not in excluded_ends]
 		for c in connected_countries:
 			orders_list.append((unit, 'move', c))
 			if not retreat:
 				try:
 					orders_list.append((unit, 'support', (c, c)))
-					for c_2 in territories_df.loc[territories_df['country']==c, 'connected_to'].values[0]:
+					for c_2 in self.territories_df.loc[self.territories_df['country']==c, 'connected_to'].values[0]:
 						if c_2 != unit:
 							orders_list.append((unit, 'support', (c_2, c)))
-					if territories_df[territories_df['country']==unit]['unit_type'].values[0] == 'fleet' and not territories_df[territories_df['country']==unit]['coast'].values[0]:
-						convoyable_sub = [p for p in self.convoyable_countries if p[0] in units_df['location'].tolist()]
+					if self.territories_df[self.territories_df['country']==unit]['unit_type'].values[0] == 'fleet' and not self.territories_df[self.territories_df['country']==unit]['coast'].values[0]:
+						convoyable_sub = [p for p in self.convoyable_countries if p[0] in self.units_df['location'].tolist()]
 						for con in convoyable_sub:
 							orders_list.append((unit, 'convoy', (con[0], con[1])))
 				except Exception as e:
 					print(f"{c=}")
-					print(territories_df.head())
-					print(territories_df.info())
+					print(self.territories_df.head())
+					print(self.territories_df.info())
 					raise e
 		final_possible_orders = []
 		for o in orders_list:
 			try:
-				if o[1] == 'support' and o[2][0] in units_df['location'].tolist() and units_df[units_df['location']==o[2][0]]['owner'].values[0] in allies:
-					self.check_order(units_df, territories_df, o[0], o[1], support = o[2])
-				elif o[1] == 'convoy' and o[2][0] in units_df['location'].tolist() and units_df[units_df['location']==o[2][0]]['owner'].values[0] in allies:
-					self.check_order(units_df, territories_df, o[0], o[1], convoy = o[2])
+				if o[1] == 'support' and o[2][0] in self.units_df['location'].tolist() and self.units_df[self.units_df['location']==o[2][0]]['owner'].values[0] in allies:
+					self.check_order(o[0], o[1], support = o[2])
+				elif o[1] == 'convoy' and o[2][0] in self.units_df['location'].tolist() and self.units_df[self.units_df['location']==o[2][0]]['owner'].values[0] in allies:
+					self.check_order(o[0], o[1], convoy = o[2])
 				else:
-					self.check_order(units_df, territories_df, o[0], o[1], o[2])
+					self.check_order(o[0], o[1], o[2])
 				final_possible_orders.append(o)
 			except AssertionError:
 				continue
@@ -352,7 +150,8 @@ class MoveResolver:
 		return final_possible_orders
 
 	def make_orders(self, units_df, territories_df, policy, loss_fn, original_orders = None, model = None, sea_model = None, land_model = None, allies = {}, naive_policy = None, active_country = None):
-
+		self.units_df = units_df
+		self.territories_df = territories_df
 		begin = time()
 
 		make_orders_timing_dict = {}
@@ -406,7 +205,7 @@ class MoveResolver:
 					# print(grads)
 					# print(out_probs)
 					make_orders_timing_dict['predict_target_for_units'].append(time() - begin)
-				unit_all_orders_dict[c] = {'orders': self.make_all_possible_orders(units_df, territories_df, c, allies = allies_sub), 'target': target, 'owner': owner, 'allies': allies_sub}
+				unit_all_orders_dict[c] = {'orders': self.make_all_possible_orders(c, allies = allies_sub), 'target': target, 'owner': owner, 'allies': allies_sub}
 				make_orders_timing_dict['make_all_possible_orders_for_units'].append(time() - begin)
 				# print('\n\n\n+++++++++++++')
 				# print(grads)
@@ -446,7 +245,7 @@ class MoveResolver:
 			model_ver_list = []
 			active_country_list = []
 			for c in units_df['location'].tolist():
-				final_possible_orders = self.make_all_possible_orders(units_df, territories_df, c, retreat, excluded_ends)
+				final_possible_orders = self.make_all_possible_orders(c, retreat, excluded_ends)
 				try:
 					order, out_probs, grads = random.choice(final_possible_orders), np.nan, np.nan
 				except IndexError:
@@ -571,7 +370,7 @@ class MoveResolver:
 					if '_' in target:
 						for t in [tar for tar in territories_df[territories_df['country']==k]['connected_to'].values[0] if target_clean in tar]:
 							try:
-								self.check_order(units_df, territories_df, k, 'move', t)
+								self.check_order(k, 'move', t)
 								break
 							except AssertionError:
 								continue
@@ -628,3 +427,219 @@ class MoveResolver:
 				final_orders_dict[k]['order'] = order
 		calc_time_diff(begin, 'find_group_best_move')
 		return final_orders_dict
+	
+
+	def submit_move(self, start, order = None, end = None, support = None, convoy = None):
+		begin = time()
+		valid, (start, order, end, support, convoy) = self.check_order(start, order, end, support, convoy)
+		assert valid
+		calc_time_diff(begin, 'submit_move')
+		return start, order, end, support, convoy
+
+	def count_support(self):
+	#     print('counting support')
+		begin = time()
+		endpoints = self.submitted_moves_df['end'].value_counts()
+		resolve_moves = self.submitted_moves_df[self.submitted_moves_df['end'].isin(endpoints[endpoints > 1].index.tolist())]
+		resolve_moves['count'] = 0
+	#     print(resolve_moves)
+		for ind, sup in self.submitted_moves_df['support'].items():
+			if sup is not None:
+				s, e = sup
+				resolve_moves.loc[(resolve_moves['start']==s)&(resolve_moves['end']==e), 'count'] += 1
+		calc_time_diff(begin, 'count_support')
+		return resolve_moves
+
+	def detect_self_loops(self):
+		begin = time()
+		move_sub = self.submitted_moves_df[self.submitted_moves_df['order']=='move']
+		if move_sub.shape[0] > 0:
+			move_sub['start'] = move_sub['start'].str.split('_').str[0]
+			move_sub['end'] = move_sub['end'].str.split('_').str[0]
+			DG = nx.DiGraph()
+			DG.add_edges_from(list(zip(move_sub['start'].tolist(), move_sub['end'].tolist())))
+			calc_time_diff(begin, 'detect_self_loops')
+			return list(nx.simple_cycles(DG))
+		else:
+			calc_time_diff(begin, 'detect_self_loops')
+			return []
+
+	def check_successful_order(self, start, end, success = None, self_loops = []):
+		begin = time()
+		start_coast = start.split('_')[0]
+		end_coast = end.split('_')[0]
+		self_loop = ([l for l in self_loops if start in l]+[[]])[0]
+		if success is None:
+			## don't resolve previous moves of self loop to prevent infinite recursion ##
+			if not (start_coast in self_loop and end_coast in self_loop):#any([start in l and end in l for l in self_loops]):
+				## resolve dependent moves
+				if end_coast in self.submitted_moves_df['start'].str.split('_').str[0].tolist() and self.submitted_moves_df.loc[self.submitted_moves_df['start'].str.split('_').str[0] == end_coast, 'order'].values[0] == 'move':
+					rerun_start, rerun_end, rerun_success = self.submitted_moves_df[self.submitted_moves_df['start'].str.split('_').str[0] == end_coast][['start', 'end', 'success']].iloc[0].tolist()
+					self.check_successful_order(rerun_start, rerun_end, rerun_success, self_loops)
+			## check convoy moves ##
+			if end not in self.territories_df.loc[self.territories_df['country'] == start, 'connected_to'].values[0]+[start]:
+				convoying_fleets = self.submitted_moves_df.loc[(self.submitted_moves_df['order'] == 'convoy')&(self.submitted_moves_df['convoy'].str[0]==start)&(self.submitted_moves_df['convoy'].str[1]==end), 'start'].tolist()
+				for f in convoying_fleets:
+					rerun_start, rerun_end, rerun_success = self.submitted_moves_df[self.submitted_moves_df['start'] == f][['start', 'end', 'success']].iloc[0].tolist()
+					self.check_successful_order(rerun_start, rerun_end, rerun_success, self_loops)
+				convoying_fleets = self.submitted_moves_df[(self.submitted_moves_df['start'].isin(convoying_fleets))&(self.submitted_moves_df['success'])]['start'].tolist()
+				G_sub = nx.Graph(self.G.subgraph(convoying_fleets+[start, end]))
+				if G_sub.has_edge(start, end):
+					G_sub.remove_edge(c_1, c_2)
+				if not nx.has_path(G_sub, start, end):
+					self.submitted_moves_df.loc[self.submitted_moves_df['start'] == start, ['success', 'order', 'end', 'count']] = [False, 'hold', start, 0]
+					self.check_successful_order(start, start, False, self_loops)
+			## check support moves valid ##
+			if self.submitted_moves_df.loc[self.submitted_moves_df['start'] == start, 'order'].values[0] == 'support':
+				support_start, support_end = self.submitted_moves_df.loc[self.submitted_moves_df['start'] == start, 'support'].values[0]
+				support_df = self.submitted_moves_df[(self.submitted_moves_df['start']==support_start)&(self.submitted_moves_df['end']==support_end)]
+				if support_df.shape[0] == 0:
+					self.submitted_moves_df.loc[self.submitted_moves_df['start'] == start, ['success', 'order', 'count']] = [False, 'hold', 0]
+					self.check_successful_order(start, start, False, self_loops)
+				elif support_df.shape[0] > 1:
+					raise IndexError('Same move multiple times, {} supporting both moves'.format(start))
+			## Can't dislodge self ##
+			if end_coast in self.units_df['location'].str.split('_').str[0].tolist() and \
+				self.units_df.loc[self.units_df['location'].str.split('_').str[0] == end_coast, 'owner'].values[0] == self.units_df.loc[self.units_df['location'].str.split('_').str[0] == start_coast, 'owner'].values[0] and \
+				end != start \
+				and not self.submitted_moves_df.loc[self.submitted_moves_df['start'].str.split('_').str[0] == end_coast, 'success'].values[0]:
+				try:
+					unique_ends = [e.split('_')[0] for e in self.submitted_moves_df.loc[self.submitted_moves_df['start'].str.split('_').str[0]==end_coast, 'end'].values if e.split('_')[0] not in [start_coast, end_coast]]
+					assert self.submitted_moves_df.loc[self.submitted_moves_df['start'].str.split('_').str[0] == end_coast, 'order'].values[0] != 'move' or \
+							(start_coast in self_loop and end_coast in self_loop and (len(unique_ends) == 0 or any([u in self_loop for u in unique_ends])))
+				except AssertionError as e:
+					print(start_coast)
+					print(end_coast)
+					print(self.submitted_moves_df.loc[self.submitted_moves_df['start'].str.split('_').str[0] == end_coast])
+					print(self_loop)
+					print(unique_ends)
+					raise AssertionError(e)
+				self.submitted_moves_df.loc[self.submitted_moves_df['start'] == start, ['success', 'order', 'end', 'count']] = [False, 'hold', start, 0]
+				self.check_successful_order(start, start, False, self_loops)
+			else:
+				resolve_moves = self.submitted_moves_df[(self.submitted_moves_df['end'].isin([end, end_coast, end_coast+'_sc', end_coast+'_nc', end_coast+'_ec']))|\
+													(self.submitted_moves_df['start'].str.split('_').str[0].isin(self_loop))]
+				rest = self.submitted_moves_df.drop(resolve_moves.index)
+				not_moving = resolve_moves[resolve_moves['order']!='move']
+				if not_moving.shape[0]>0:
+					hold_owner = self.units_df[self.units_df['location']==not_moving['start'].values[0]]['owner'].values[0]
+					m=(resolve_moves['order']=='move')&\
+						(resolve_moves['start'].isin(self.units_df[self.units_df['owner']==hold_owner]['location'].tolist()))
+					resolve_moves.loc[m,'success']=False
+				if resolve_moves.shape[0] > 0 and resolve_moves['count'].value_counts().sort_index(ascending=False).tolist()[0]==1:
+					maximum = resolve_moves['count'].max()
+					top_count = maximum
+				else:
+					maximum = -1
+					top_count = resolve_moves['count'].max()
+				for ind, row in resolve_moves.iterrows():
+					if row['success'] is None:
+						if row['count'] == maximum and resolve_moves[(resolve_moves['start']==row['end'])&(resolve_moves['owner']==row['owner'])].shape[0] == 0:
+							# catch edge case with self-loop and supported move into country with same owner ^^
+							success = True
+						elif row['order'] == 'convoy' and row['count'] == top_count:
+							success = True
+						else:
+							success = False
+						resolve_moves.loc[resolve_moves['start'] == row['start'], 'success'] = success
+					else:
+						success = row['success']
+					if not success:
+						resolve_moves.loc[resolve_moves['start'] == row['start'], 'order'] = 'hold'
+						resolve_moves.loc[resolve_moves['start'] == row['start'], 'end'] = row['start']
+						resolve_moves.loc[resolve_moves['start'] == row['start'], 'count'] = 0
+						self.submitted_moves_df = pd.concat([rest, resolve_moves]).drop_duplicates([c for c in self.submitted_moves_df.columns if c != "metadata"]).sort_index() #don't like hard coding list, think about how to 
+						self.check_successful_order(row['start'], row['start'], success, self_loops)
+						try:
+							resolve_moves.loc[resolve_moves['start'] == row['start']] = self.submitted_moves_df[self.submitted_moves_df['start'] == row['start']].values
+						except ValueError as e:
+							resolve_moves.loc[resolve_moves['start'] == row['start']] = self.submitted_moves_df[self.submitted_moves_df['start'] == row['start']].values[0]
+				self.submitted_moves_df = pd.concat([rest, resolve_moves]).drop_duplicates([c for c in self.submitted_moves_df.columns if c != "metadata"]).sort_index()
+		elif not success:
+			resolve_moves = self.submitted_moves_df[self.submitted_moves_df['end'].isin([end, end_coast])]
+			rest = self.submitted_moves_df.drop(resolve_moves.index)
+			resolve_moves_diff_owner = resolve_moves[(resolve_moves['start']==start)|(resolve_moves['owner']!=resolve_moves.loc[resolve_moves['start']==start, 'owner'].values[0])] #remove same owners since can't dislodge self
+			maximum = resolve_moves_diff_owner['count'].max()
+			if resolve_moves_diff_owner.loc[resolve_moves_diff_owner['start'] == start, 'count'].values[0] != maximum:
+				resolve_moves.loc[resolve_moves['start'] == start, 'dislodged'] = True
+				resolve_moves.loc[resolve_moves['start'] == start, 'order'] = 'retreat'
+			else:
+				resolve_moves.loc[resolve_moves['start'] == start, 'dislodged'] = False
+			self.submitted_moves_df = pd.concat([rest, resolve_moves]).drop_duplicates([c for c in self.submitted_moves_df.columns if c != "metadata"]).sort_index()
+		calc_time_diff(begin, 'check_successful_order')
+		# return submitted_moves_df
+
+	def make_submitted_moves_df(self):
+		begin = time()
+		submitted_moves = {'start': [], 'order': [], 'end': [], 'support': [], 'convoy': []}
+		for move in self.orders_list:
+			if len(move) == 3:
+				if move[1] in ['move', 'retreat', 'hold']:
+					start, order, end, support, convoy = self.submit_move(move[0], move[1], move[2])
+				elif move[1] == 'support':
+					start, order, end, support, convoy = self.submit_move(move[0], move[1], support = move[2])
+				elif move[1] == 'convoy':
+					start, order, end, support, convoy = self.submit_move(move[0], move[1], convoy = move[2])
+				elif move[1] == 'disband':
+					start, order, end, support, convoy = *move, None, None
+			elif len(move) == 2:
+				start, order, end, support, convoy = self.submit_move(move[0], move[1])
+			else:
+				start, order, end, support, convoy = self.submit_move(move[0])
+			try:
+				submitted_moves['start'].append(start)
+				submitted_moves['order'].append(order)
+				submitted_moves['end'].append(end)
+				submitted_moves['support'].append(support)
+				submitted_moves['convoy'].append(convoy)
+			except UnboundLocalError:
+				print(move)
+				print(self.orders_list)
+		calc_time_diff(begin, 'make_submitted_moves_df')
+		return pd.DataFrame(submitted_moves)
+
+	def resolve_submitted_moves(self, units_df, territories_df, orders_list):
+		self.units_df = units_df
+		self.territories_df = territories_df
+		self.orders_list = orders_list
+		begin = time()
+		original_orders = self.make_submitted_moves_df()
+		original_orders = original_orders.merge(units_df, how = 'left', left_on = 'start', right_on = 'location').drop('location', axis = 1)
+		if original_orders.shape[0] != units_df.shape[0]:
+			print(original_orders)
+			print(units_df)
+		self.submitted_moves_df = copy.deepcopy(original_orders)
+		support_count = self.count_support()
+		self.submitted_moves_df = self.submitted_moves_df.merge(support_count[['start', 'count']], on = 'start', how = 'left')# right_on = 'index' .drop('index', axis = 1)
+		self.submitted_moves_df['count'].fillna(0)
+		self.submitted_moves_df['count'] = self.submitted_moves_df['count'].fillna(0)
+		self.submitted_moves_df['success'] = None
+		self.submitted_moves_df['dislodged'] = False
+		self_loops = self.detect_self_loops()
+		self.submitted_moves_df = self.submitted_moves_df.sort_values('order', ascending = False).reset_index(drop=True) #ensure look at support first
+		for ind in range(self.submitted_moves_df.shape[0]):
+			row = self.submitted_moves_df.loc[ind]
+			if row['success'] is None:
+				start, end, success = row[['start', 'end', 'success']]
+				self.check_successful_order(start, end, success, self_loops)
+		calc_time_diff(begin, 'resolve_submitted_moves')
+		return self.submitted_moves_df, original_orders
+
+	def update_territories_df(self, units_df, territories_df, season): #this function is not referenced in main move determination engine
+		begin = time()
+		old_territories_df = copy.deepcopy(territories_df)
+		for ind, row in units_df.iterrows():
+			territories_df.loc[territories_df['country'].str.split('_').str[0]==row['location'].split('_')[0], 'controlled_by'] = row['owner']
+		if season == 'fall':
+			for r in units_df.itertuples(index=None, name=None):
+				territories_df.loc[territories_df['country']==r[0], 'sc_control'] = r[2]
+		calc_time_diff(begin, 'update_territories_df')
+		return old_territories_df, territories_df
+
+		# DEPRICATED?
+	def cut_support(self, df):
+		begin = time()
+		df_sub = df.merge(df[df['order'] == 'move'], left_on = 'start', right_on = 'end', how = 'left')
+		df.loc[(~df_sub['start_y'].isna())&(df['order']=='support'), 'order'] = 'hold'
+		calc_time_diff(begin, 'cut_support')
+		return df

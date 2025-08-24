@@ -53,7 +53,12 @@ class BuildsMaker:
                             build_loc, army_proba, grads = build_policy_out, np.nan, np.nan
                         # print(f"{build=}, {build_loc=}")
                         if build_loc[0] is not None:
-                            build_loc = (build_loc[0], build_loc[1], c, str(uuid4()), {"is_active": None, "out_probs_ind": None, "grads_ind": None, "model_ver": None})
+                            metadata = {"is_active": None, "out_probs_ind": None, "grads_ind": None, "model_ver": None}
+                            if c == active_country:
+                                metadata["is_active"] = True
+                            else:
+                                metadata["is_active"] = False
+                            build_loc = (build_loc[0], build_loc[1], c, str(uuid4()), metadata)
                             builds_output_dict[build_loc[3]] = {'rewards': [], 'grads': grads, 'owner': c}
                             units_df = pd.concat([units_df, pd.DataFrame([build_loc], columns = units_df.columns)], ignore_index=True)
             if num_builds < 0:
